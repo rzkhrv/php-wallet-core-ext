@@ -111,3 +111,12 @@ echo bin2hex($key->data()), PHP_EOL;
 ```
 
 The generated API and any unsupported C signatures are documented in `walletcore.stub.php` and `abi.json` inside the build artifacts.
+
+## License
+
+Copyright 2026 rzkhrv.
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
+
+Trust Wallet Core and third-party dependencies remain subject
+to their respective licenses.
