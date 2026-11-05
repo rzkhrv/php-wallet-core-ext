@@ -1,0 +1,34 @@
+.git
+.git/**
+**/__pycache__/
+**/*.pyc
+build
+build/**
+dist
+dist/**
+matrix-results
+matrix-results/**
+release
+release/**
+out
+out/**
+artifacts
+artifacts/**
+*.zip
+*.so
+*.a
+*.o
+.DS_Store
+
+# Host-side diagnostic logs must never enter the Docker build context.
+asan-trace.log
+asan-traces/
+
+# Never copy host-generated toolchain artifacts into the Docker context.
+node_modules
+.venv
+.pytest_cache
+*.log
+
+# Host IDE project settings are irrelevant to the container build.
+.idea/

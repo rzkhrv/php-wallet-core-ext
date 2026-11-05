@@ -1,0 +1,29 @@
+# Generated files belong to Docker's build cache or the local artifact export,
+# never to the source repository.
+/build/
+/dist/
+/matrix-results/
+/release/
+/out/
+/artifacts/
+
+# Native compilation outputs (including accidental output outside build/).
+*.o
+*.a
+*.so
+*.d
+*.tar.gz
+*.tgz
+*.zip
+
+# Runtime diagnostics and caches.
+*.log
+/asan-traces/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+.DS_Store
+
+# Local IDE settings are not part of the PHP extension.
+.idea/

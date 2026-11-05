@@ -1,0 +1,10 @@
+# syntax=docker/dockerfile:1.6
+# Data-only image: no PHP, shell, libc or build toolchain.
+# The publisher validates the matching ELF architecture and build-info.json.
+FROM scratch
+LABEL org.opencontainers.image.title="Wallet Core PHP extension" \
+      org.opencontainers.image.description="Verified walletcore.so and PHP ABI metadata"
+COPY walletcore.so /walletcore.so
+COPY build-info.json /build-info.json
+COPY abi.json /abi.json
+COPY walletcore.stub.php /walletcore.stub.php
