@@ -85,6 +85,14 @@ if ($key === null) {
 echo bin2hex($key->getPublicKeySecp256k1(true)->data()), PHP_EOL;
 ```
 
+### Protobuf messages (optional)
+
+For APIs that accept or return serialized Protobuf messages, install [rzkhrv/php-wallet-core-protobuf](https://github.com/rzkhrv/php-wallet-core-protobuf). It provides PHP classes generated from Trust Wallet Core's `.proto` files, so you can build inputs and decode outputs in PHP.
+
+```sh
+composer require rzkhrv/php-wallet-core-protobuf
+```
+
 ### IDE completion
 
 `walletcore.stub.php` declares the generated `WalletCore` classes, constants, and method signatures. Use the stub from the same build as your `walletcore.so` so your editor sees the API available at runtime.
