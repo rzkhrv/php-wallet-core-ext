@@ -40,6 +40,29 @@ make runtime-test OS=alpine OS_VERSION=3.24 PLATFORM=linux/amd64 \
 
 The user configured in the runtime image must be able to read the mounted artifacts directory. Test logs are under `logs/` in the profile directory. AddressSanitizer checks are available with `make test-asan` for Debian builds.
 
+### Coin integration tests
+
+Build the selected profile first, then run the PHPUnit examples against its
+exported module in a separate Docker image. Use a Wallet Core release with a
+matching published `rzkhrv/php-wallet-core-protobuf` package:
+
+```sh
+make build WALLET_CORE_REF=4.8.7
+make test-coins WALLET_CORE_REF=4.8.7
+make test-coins WALLET_CORE_REF=4.8.7 PHPUNIT_FILTER=BitcoinTest
+```
+
+The test target uses matching official PHP images for Debian 12/13 and Alpine.
+For other distributions, or when using a custom runtime, set `RUNTIME_IMAGE`
+to an ABI-compatible PHP CLI image with the required shared libraries and
+Composer/PHPUnit extensions. Composer and PHPUnit (10 or newer) are installed
+only inside Docker. The log is saved to the selected profile's
+`logs/test-coins.log`.
+
+The tests in `tests/coins/` are offline usage examples. They use public test
+keys and historical or synthetic transaction data. Never fund the test addresses
+or broadcast these transactions.
+
 ## 3. Publish to GHCR (optional)
 
 To share the verified artifacts, log in with a GitHub personal access token (classic) with `write:packages`, then publish to your package:

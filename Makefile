@@ -20,6 +20,7 @@ MATRIX_WALLET_CORE_REFS ?= $(WALLET_CORE_REF)
 # OS:release:architecture:ZTS; defaults to the selected single-build profile.
 MATRIX_TARGETS ?= $(OS):$(OS_VERSION):$(patsubst linux/%,%,$(PLATFORM)):$(PHP_ZTS)
 RUNTIME_IMAGE ?=
+PHPUNIT_FILTER ?=
 OCI_IMAGE ?=
 # Select architectures already built and tested; never build during publish.
 OCI_PLATFORMS ?= $(PLATFORM)
@@ -33,6 +34,12 @@ CASE_DIR = $(BUILD_ROOT)/$(OS)$(OS_VERSION)-$(patsubst linux/%,%,$(PLATFORM))-ph
 VALIDATE_OUTPUT = bash tools/build/check-build-output.sh "$(BUILD_ROOT)" "$(PHP_VERSION)" "$(WALLET_CORE_REF)" "$(OS)" "$(OS_VERSION)" "$(PLATFORM)" "$(PHP_ZTS)"
 ARTIFACT_DIR = $(CASE_DIR)/artifacts
 LOG_DIR = $(CASE_DIR)/logs
+
+# Official PHP images for matching Debian/Alpine profiles; other OS profiles
+# can supply a compatible application image through RUNTIME_IMAGE.
+TEST_PHP_VARIANT = $(if $(filter 1,$(PHP_ZTS)),zts,cli)
+TEST_PHP_DISTRO = $(if $(filter alpine,$(OS)),alpine$(OS_VERSION),$(if $(filter debian,$(OS)),$(if $(filter 13,$(OS_VERSION)),trixie,$(if $(filter 12,$(OS_VERSION)),bookworm))))
+TEST_PHP_IMAGE = $(if $(strip $(RUNTIME_IMAGE)),$(RUNTIME_IMAGE),$(if $(TEST_PHP_DISTRO),php:$(PHP_VERSION)-$(TEST_PHP_VARIANT)-$(TEST_PHP_DISTRO)))
 
 DOCKER_BUILD = $(DOCKER) buildx build \
 	--file docker/Dockerfile \
@@ -48,7 +55,7 @@ DOCKER_BUILD = $(DOCKER) buildx build \
 	--build-arg BUILD_JOBS="$(BUILD_JOBS)" \
 	--progress=plain $(DOCKER_BUILD_OPTIONS)
 
-.PHONY: build update test test-asan matrix runtime-test publish clean clean-all help
+.PHONY: build update test test-coins test-asan matrix runtime-test publish clean clean-all help
 
 # Preserve the previous successful .so if Docker verification fails.
 build:
@@ -65,6 +72,20 @@ test:
 	@mkdir -p -- "$(LOG_DIR)"
 	@bash tools/build/capture-build-log.sh "$(LOG_DIR)/test.log" \
 	  $(DOCKER_BUILD) --target verified .
+
+# Use the exported module without rebuilding or changing the native toolchain.
+test-coins:
+	@$(VALIDATE_OUTPUT)
+	@test -n "$(TEST_PHP_IMAGE)" || { echo 'ERROR: set RUNTIME_IMAGE to a compatible PHP CLI image for this profile' >&2; exit 2; }
+	@test -s "$(ARTIFACT_DIR)/walletcore.so" && test -s "$(ARTIFACT_DIR)/build-info.json" || { echo 'ERROR: run make build for the selected profile first' >&2; exit 2; }
+	@mkdir -p -- "$(LOG_DIR)"
+	@bash tools/build/capture-build-log.sh "$(LOG_DIR)/test-coins.log" \
+	  $(DOCKER) buildx build --file docker/Dockerfile.tests --platform="$(PLATFORM)" \
+	  --build-context walletcore_artifacts="$(ARTIFACT_DIR)" \
+	  --build-arg PHP_IMAGE="$(TEST_PHP_IMAGE)" --build-arg EXPECTED_PHP_VERSION="$(PHP_VERSION)" \
+	  --build-arg WALLET_CORE_REF="$(WALLET_CORE_REF)" --build-arg PHPUNIT_FILTER="$(PHPUNIT_FILTER)" \
+	  --build-arg RUNTIME_PHP_BIN="$(RUNTIME_PHP_BIN)" \
+	  --target coin_tests --no-cache-filter coin_tests --progress=plain $(DOCKER_BUILD_OPTIONS) .
 
 # A full Docker/ASan trace is saved alongside the release and test logs.
 test-asan:
@@ -122,10 +143,11 @@ help:
 	@echo 'make OS=debian OS_VERSION=13 PHP_VERSION=8.4.27 PHP_ZTS=1 PLATFORM=linux/arm64'
 	@echo 'make OS=ubuntu OS_VERSION=24.04; make OS=fedora OS_VERSION=44'
 	@echo 'make OS=rockylinux OS_VERSION=9; make OS=almalinux OS_VERSION=9'
-	@echo 'make test / make test-asan / make matrix / make runtime-test / make publish'
+	@echo 'make test / make test-coins / make test-asan / make matrix / make runtime-test / make publish'
 	@echo 'Output: build/<os><release>-<arch>-php<version>-<nts|zts>-wc<ref>/'
 	@echo 'Report: build/matrix.json (last matrix run)'
 	@echo 'make publish OCI_IMAGE=ghcr.io/owner/walletcore-php OS=alpine OS_VERSION=3.24 PHP_VERSION=8.4.27 PHP_ZTS=0 WALLET_CORE_REF=4.8.4'
 	@echo 'make matrix MATRIX_TARGETS="debian:13:arm64:0 alpine:3.24:arm64:0" MATRIX_PHP_VERSIONS=8.4.27 MATRIX_WALLET_CORE_REFS=4.8.4'
 	@echo 'make runtime-test RUNTIME_IMAGE=php:8.4-cli-trixie PHP_VERSION=8.4.27 OS=debian OS_VERSION=13'
+	@echo 'make test-coins WALLET_CORE_REF=4.8.7 PHPUNIT_FILTER=BitcoinTest'
 	@echo 'test-asan currently supports Debian only'

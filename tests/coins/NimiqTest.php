@@ -1,0 +1,178 @@
+<?php
+
+declare(strict_types=1);
+
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+use TW\Common\Proto\SigningError;
+use TW\Nimiq\Proto;
+use WalletCore\AnyAddress;
+use WalletCore\AnySigner;
+use WalletCore\CoinType;
+use WalletCore\CoinTypeConfiguration;
+use WalletCore\HDWallet;
+use WalletCore\PrivateKey;
+
+// Address vectors: Wallet Core 4.8.7, CoinAddressDerivationTests.kt.
+// Public test keys only; do not fund or broadcast.
+final class NimiqTest extends TestCase
+{
+    public function testCoinConfiguration(): void
+    {
+        $coin = CoinType::Nimiq;
+
+        $symbol = CoinTypeConfiguration::getSymbol($coin);
+        $decimals = CoinTypeConfiguration::getDecimals($coin);
+
+        self::assertSame('NIM', $symbol);
+        self::assertSame(5, $decimals);
+    }
+
+    public function testAddressFromMnemonic(): void
+    {
+        $wallet = HDWallet::createWithMnemonic(
+            'shoot island position soft burden budget tooth cruel issue economy destroy above',
+            '',
+        );
+        self::assertNotNull($wallet);
+
+        $address = $wallet->getAddressForCoin(CoinType::Nimiq);
+
+        self::assertSame('NQ76 7AVR EHDA N05U X7SY XB14 XJU7 8ERV GM6H', $address);
+    }
+
+    public function testAddressFromDerivationPath(): void
+    {
+        $wallet = HDWallet::createWithMnemonic(
+            'shoot island position soft burden budget tooth cruel issue economy destroy above',
+            '',
+        );
+        self::assertNotNull($wallet);
+
+        $coin = CoinType::Nimiq;
+        $path = "m/44'/242'/0'/0'";
+        $key = $wallet->getKey($coin, $path);
+        self::assertNotNull($key);
+
+        $address = CoinType::deriveAddress($coin, $key);
+
+        self::assertSame($path, CoinType::derivationPath($coin));
+        self::assertSame('NQ76 7AVR EHDA N05U X7SY XB14 XJU7 8ERV GM6H', $address);
+    }
+
+    public function testAddressFromNonDefaultPath(): void
+    {
+        $coin = CoinType::Nimiq;
+        $wallet = HDWallet::createWithMnemonic('shoot island position soft burden budget tooth cruel issue economy destroy above', '');
+        self::assertNotNull($wallet);
+        $key = $wallet->getKey($coin, "m/44'/242'/0'/1'");
+        self::assertNotNull($key);
+
+        $address = CoinType::deriveAddress($coin, $key);
+
+        self::assertNotNull($address);
+        self::assertTrue(AnyAddress::isValid($address, $coin));
+        self::assertNotSame('NQ76 7AVR EHDA N05U X7SY XB14 XJU7 8ERV GM6H', $address);
+    }
+
+    public function testAddressFromPublicKey(): void
+    {
+        $coin = CoinType::Nimiq;
+        $wallet = HDWallet::createWithMnemonic('shoot island position soft burden budget tooth cruel issue economy destroy above', '');
+        self::assertNotNull($wallet);
+        $key = $wallet->getKeyForCoin($coin);
+        self::assertNotNull($key);
+        $publicKey = $key->getPublicKey($coin);
+        self::assertNotNull($publicKey);
+
+        $address = CoinType::deriveAddressFromPublicKey($coin, $publicKey);
+
+        self::assertSame('NQ76 7AVR EHDA N05U X7SY XB14 XJU7 8ERV GM6H', $address);
+    }
+
+    public function testImportPrivateKey(): void
+    {
+        $coin = CoinType::Nimiq;
+        $wallet = HDWallet::createWithMnemonic('shoot island position soft burden budget tooth cruel issue economy destroy above', '');
+        self::assertNotNull($wallet);
+        $key = $wallet->getKey($coin, "m/44'/242'/0'/0'");
+        self::assertNotNull($key);
+        $raw = $key->data();
+        self::assertNotNull($raw);
+
+        $imported = PrivateKey::createWithData($raw);
+
+        self::assertNotNull($imported);
+        self::assertSame($raw, $imported->data());
+        self::assertSame('NQ76 7AVR EHDA N05U X7SY XB14 XJU7 8ERV GM6H', CoinType::deriveAddress($coin, $imported));
+    }
+
+    public function testParseAddress(): void
+    {
+        $coin = CoinType::Nimiq;
+        $expected = 'NQ76 7AVR EHDA N05U X7SY XB14 XJU7 8ERV GM6H';
+
+        $address = AnyAddress::createWithString($expected, $coin);
+
+        self::assertNotNull($address);
+        self::assertSame($coin, $address->coin());
+        self::assertSame($expected, $address->description());
+    }
+
+    #[DataProvider('addressProvider')]
+    public function testValidateAddress(string $address, bool $expected): void
+    {
+        $valid = AnyAddress::isValid($address, CoinType::Nimiq);
+
+        self::assertSame($expected, $valid);
+    }
+
+    public function testSignTransaction(): void
+    {
+        $coin = CoinType::Nimiq;
+        $wallet = HDWallet::createWithMnemonic(
+            'shoot island position soft burden budget tooth cruel issue economy destroy above',
+            '',
+        );
+        self::assertNotNull($wallet);
+        $key = $wallet->getKey($coin, "m/44'/242'/0'/0'");
+        self::assertNotNull($key);
+
+        $recipientWallet = HDWallet::createWithMnemonic(
+            'legal winner thank year wave sausage worth useful legal winner thank yellow',
+            '',
+        );
+        self::assertNotNull($recipientWallet);
+        $recipient = $recipientWallet->getAddressForCoin($coin);
+        self::assertNotNull($recipient);
+        $privateKey = $key->data();
+        self::assertNotNull($privateKey);
+
+        $input = new Proto\SigningInput([
+            'private_key' => $privateKey,
+            'destination' => $recipient,
+            'value' => '100000',
+            'fee' => '0',
+            'validity_start_height' => 1_000_000,
+            'network_id' => Proto\NetworkId::MainnetAlbatross,
+        ]);
+
+        $signedData = AnySigner::sign($input->serializeToString(), $coin);
+        self::assertNotEmpty($signedData);
+
+        $output = new Proto\SigningOutput();
+        $output->mergeFromString($signedData);
+
+        self::assertSame(SigningError::OK, $output->getError(), $output->getErrorMessage());
+        self::assertNotSame('', $output->getEncoded());
+    }
+
+    public static function addressProvider(): array
+    {
+        return [
+            'valid address' => ['NQ76 7AVR EHDA N05U X7SY XB14 XJU7 8ERV GM6H', true],
+            'invalid format' => ['not-an-address!', false],
+            'empty address' => ['', false],
+        ];
+    }
+}

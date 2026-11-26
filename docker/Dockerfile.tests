@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1.6
+ARG PHP_IMAGE=php:8.5-cli-trixie
+FROM ${PHP_IMAGE} AS dependencies
+USER root
+ARG RUNTIME_PHP_BIN=php
+ARG WALLET_CORE_REF
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+WORKDIR /opt/coin-tests
+
+# Runtime libraries for the official PHP images and Composer's zip extractor.
+# Other runtime images must supply their own required libraries and tools.
+RUN set -eu; \
+    if command -v apk >/dev/null 2>&1; then \
+      apk add --no-cache libstdc++ libgcc unzip; \
+    elif command -v apt-get >/dev/null 2>&1; then \
+      apt-get update; \
+      apt-get install -y --no-install-recommends libstdc++6 libgcc-s1 unzip; \
+      rm -rf /var/lib/apt/lists/*; \
+    fi
+
+RUN --mount=type=cache,id=walletcore-composer-v1,target=/var/cache/walletcore-composer,sharing=locked \
+    set -eu; \
+    "$RUNTIME_PHP_BIN" -r 'if (!preg_match("/^v?[0-9]+\\.[0-9]+\\.[0-9]+$/D", $argv[1])) { fwrite(STDERR, "ERROR: coin tests require a Wallet Core release tag with a matching published protobuf package\n"); exit(2); }' "$WALLET_CORE_REF"; \
+    COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_CACHE_DIR=/var/cache/walletcore-composer \
+      "$RUNTIME_PHP_BIN" /usr/local/bin/composer require --no-interaction --no-progress --prefer-dist --no-plugins --no-scripts \
+      "rzkhrv/php-wallet-core-protobuf:${WALLET_CORE_REF#v}" 'phpunit/phpunit:>=9.6'
+
+FROM dependencies AS coin_tests
+ARG EXPECTED_PHP_VERSION
+ARG PHPUNIT_FILTER=""
+COPY --from=walletcore_artifacts walletcore.so build-info.json /work/extension/build/
+COPY tests/php/runtime_compat.php /work/extension/tests/php/runtime_compat.php
+COPY tests/coins/ /work/extension/tests/coins/
+
+RUN --network=none set -eu; \
+    "$RUNTIME_PHP_BIN" /work/extension/tests/php/runtime_compat.php; \
+    "$RUNTIME_PHP_BIN" -r '$info = json_decode(file_get_contents("/work/extension/build/build-info.json"), true, 512, JSON_THROW_ON_ERROR); if ($info["wallet_core_ref"] !== $argv[1] || $info["php_version"] !== $argv[2] || PHP_VERSION !== $argv[2]) { fwrite(STDERR, "ERROR: selected Wallet Core ref or PHP version does not match the artifact/runtime\n"); exit(2); } if (extension_loaded("walletcore")) { fwrite(STDERR, "ERROR: runtime already loads walletcore\n"); exit(2); }' "$WALLET_CORE_REF" "$EXPECTED_PHP_VERSION"; \
+    "$RUNTIME_PHP_BIN" -d extension=/work/extension/build/walletcore.so \
+      -r 'if (!extension_loaded("walletcore")) { exit(2); }'; \
+    set -- --no-configuration --fail-on-empty-test-suite --bootstrap /opt/coin-tests/vendor/autoload.php; \
+    if [ -n "$PHPUNIT_FILTER" ]; then set -- "$@" --filter "$PHPUNIT_FILTER"; fi; \
+    "$RUNTIME_PHP_BIN" -d extension=/work/extension/build/walletcore.so \
+      /opt/coin-tests/vendor/bin/phpunit "$@" /work/extension/tests/coins
