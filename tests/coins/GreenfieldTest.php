@@ -69,8 +69,11 @@ final class GreenfieldTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/60'/0'/0/1");
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/60'/0'/0/1.
+        self::assertSame('729e54c42afc8b7aa78c4e025291f5cb3421ba50b3a26e53c97d30fbf89405c9', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('0x209233Bf3F36ce7f0E6c09534E113a0B700Ee8b0', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -101,6 +104,10 @@ final class GreenfieldTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

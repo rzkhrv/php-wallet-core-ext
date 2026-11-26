@@ -68,8 +68,11 @@ final class PolymeshTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/595'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/595'/0'/0'/1'.
+        self::assertSame('4a5fb20c9ce9b1ad1c67c6983ca3300c806e9bcec4ca1b95f0e6b7caf00daa94', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('2FB1SoGdHfWwuvkUBs6gKjpZTtTV6Hp1e8HR9B1Ti2i8kdBm', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -101,6 +104,10 @@ final class PolymeshTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

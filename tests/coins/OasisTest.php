@@ -67,6 +67,8 @@ final class OasisTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/474'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/474'/1'.
+        self::assertSame('81cbf992edb7f86f4f336bd33a8bd1dcdd0138bf222f132e3cbfdd7128218468', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -99,6 +101,10 @@ final class OasisTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

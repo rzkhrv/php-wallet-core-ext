@@ -69,12 +69,14 @@ final class EthereumClassicTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/61'/0'/0/1.
+        self::assertSame('b5fdf86cf65d6cec3495858bca335eb307b485a777df9d8a6a046821cbda5107', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('30f339d5435a6e6fbf0ed979b3f0b89a7c15a9c9', strtolower(substr($address, -40)));
+        self::assertSame('0x30f339D5435a6E6fbF0ED979B3F0B89a7c15A9c9', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class EthereumClassicTest extends TestCase
     {
         $coin = CoinType::EthereumClassic;
         $raw = hex2bin('f400caeeb4b7385969473eb932fe7f1e03b0267685ab175642998a9969be7e21');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

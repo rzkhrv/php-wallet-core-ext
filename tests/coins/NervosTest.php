@@ -68,6 +68,8 @@ final class NervosTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/309'/0'/0/1.
+        self::assertSame('7548aba05a168ee7a145a77af9aa6baa8ecbe2412a5a73426778a6722efae49f', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -101,6 +103,10 @@ final class NervosTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 
@@ -189,6 +195,9 @@ final class NervosTest extends TestCase
         self::assertCount(1, $plan->getSelectedCells());
         self::assertCount(2, $plan->getOutputs());
         self::assertSame(10000000000, (int) $plan->getOutputs()[0]->getCapacity());
+        $change = (int) $plan->getOutputs()[1]->getCapacity();
+        self::assertGreaterThan(0, $change);
+        self::assertGreaterThan(0, 100000000000 - 10000000000 - $change);
     }
 
     public function testSignTransaction(): void

@@ -69,8 +69,11 @@ final class PolkadotTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/354'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/354'/0'/0'/1'.
+        self::assertSame('15805c1131e1d9122f7aa99d9dadcf5594522b2fe71168882ef4f8b17ccb043b', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('12w1cY6jhxBgLjAuzu8dfKEPAgxBDS7PJHC9yJqUSdhAR9ws', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -102,6 +105,10 @@ final class PolkadotTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

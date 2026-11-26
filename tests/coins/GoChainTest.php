@@ -69,12 +69,14 @@ final class GoChainTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/6060'/0'/0/1.
+        self::assertSame('92fe216d589ac84b65355c719d32e0d6a0aae43ff77dbb6cc7f7da5cd5077c9e', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('b4a239201aaabd0165d87dd664405f192ba8a34f', strtolower(substr($address, -40)));
+        self::assertSame('0xB4a239201aaabd0165d87dD664405f192BA8A34F', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class GoChainTest extends TestCase
     {
         $coin = CoinType::GoChain;
         $raw = hex2bin('0b09eca9fa16341ec8e99214a87b66b08409bf25ed6accb7f483dc91537dcd5a');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

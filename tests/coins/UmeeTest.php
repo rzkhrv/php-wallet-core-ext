@@ -70,8 +70,11 @@ final class UmeeTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/118'/0'/0/1");
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/118'/0'/0/1.
+        self::assertSame('6c9c31dbacc911664b4683c16956ca708be217d96f4b9b7a0db6fc35413fb4ae', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('umee1tmvlpttlwfmtatycgdyvyeuh989udrdrn2ug4q', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -102,6 +105,10 @@ final class UmeeTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 
@@ -193,12 +200,13 @@ final class UmeeTest extends TestCase
         self::assertSame(64, strlen($output->getSignature()));
         $envelope = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $bytes = Base64::decode($envelope['tx_bytes']);
-        self::assertNotNull($bytes);
-        $send = $input->getMessages()[0]->getSendCoinsMessage();
-        self::assertStringContainsString($send->getFromAddress(), $bytes);
-        self::assertStringContainsString($send->getToAddress(), $bytes);
-        self::assertStringContainsString($send->getAmounts()[0]->getDenom(), $bytes);
-        self::assertStringContainsString($send->getAmounts()[0]->getAmount(), $bytes);
+        self::assertIsString($bytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            '9149fafe8231be983b63e044d8f0a224149d40dafec1e9380ea6aed23cf76d4112e54c743ad4cd8de2f48d4d5a4ba2528e228ed5068d8dbb180023d5b06e8b85',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('b637c5a8e04fd124ea4863206d8bee926451bd3769946f2fe787d98bbf5025c1', hash('sha256', $bytes));
     }
 
     public function testSignTokenTransferBank(): void
@@ -269,8 +277,12 @@ final class UmeeTest extends TestCase
         $transaction = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $txBytes = Base64::decode($transaction['tx_bytes']);
         self::assertIsString($txBytes);
-        self::assertStringContainsString('/cosmos.bank.v1beta1.MsgSend', $txBytes);
-        self::assertStringContainsString($tokenDenom, $txBytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            'a0b3d4b936a793db91dea9b8fd2e86538d8b1cc7c3ade813a6ae7c609d2e7d6e47aaec0afacddcd69a4f358c4215e1ef4e8b2b2c232c79e8f98441705554e377',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('d00c1b7a5a9479ba119b020f861905c6310805443a9eb5dfbadfb899db2b3bfe', hash('sha256', $txBytes));
     }
 
     public static function addressProvider(): array

@@ -69,6 +69,8 @@ final class DecredTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/42'/0'/0/1.
+        self::assertSame('6bab090392187f2318cbe054806a1d367d57e2d61b150987cd8a7fbfae155672', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -101,6 +103,10 @@ final class DecredTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 
@@ -188,6 +194,12 @@ final class DecredTest extends TestCase
         self::assertSame(1000000, (int) $plan->getAvailableAmount());
         self::assertGreaterThan(0, (int) $plan->getFee());
         self::assertSame(1000000, (int) $plan->getAmount() + (int) $plan->getFee() + (int) $plan->getChange());
+        self::assertGreaterThan(0, (int) $plan->getChange());
+        self::assertCount(1, $plan->getUtxos());
+        $selected = $plan->getUtxos()[0];
+        self::assertSame(1000000, (int) $selected->getAmount());
+        self::assertSame($hash, $selected->getOutPoint()->getHash());
+        self::assertSame(0, $selected->getOutPoint()->getIndex());
     }
 
     public function testSignTransaction(): void

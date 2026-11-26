@@ -67,8 +67,11 @@ final class HarmonyTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/1023'/0'/0/1.
+        self::assertSame('1d0d74db27a697f29d99052e20f3769c5c1880e21f370782c716c979bff15d25', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('one1ke0fz50dpk5xshq2hjhdsgggc07j0egacv0rhx', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -99,6 +102,10 @@ final class HarmonyTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

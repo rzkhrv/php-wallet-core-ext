@@ -70,8 +70,11 @@ final class NativeCantoTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/60'/0'/0/1");
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/60'/0'/0/1.
+        self::assertSame('729e54c42afc8b7aa78c4e025291f5cb3421ba50b3a26e53c97d30fbf89405c9', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('canto1yzfr80elxm887rnvp9f5uyf6pdcqa69s4mxdsw', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -102,6 +105,10 @@ final class NativeCantoTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 
@@ -193,12 +200,13 @@ final class NativeCantoTest extends TestCase
         self::assertSame(64, strlen($output->getSignature()));
         $envelope = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $bytes = Base64::decode($envelope['tx_bytes']);
-        self::assertNotNull($bytes);
-        $send = $input->getMessages()[0]->getSendCoinsMessage();
-        self::assertStringContainsString($send->getFromAddress(), $bytes);
-        self::assertStringContainsString($send->getToAddress(), $bytes);
-        self::assertStringContainsString($send->getAmounts()[0]->getDenom(), $bytes);
-        self::assertStringContainsString($send->getAmounts()[0]->getAmount(), $bytes);
+        self::assertIsString($bytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            'e54467938f3cd358fcf3271db2604f0cf9d846d0d17dac0c25c3c1014ec8d6900f0aae3153d361c3bee8902be6ec51542e29789a93212ea417883cb0389d2c95',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('73478e542de226762c517b3797291dbf5ba38f045938b37ac2baff8ce2779c98', hash('sha256', $bytes));
     }
 
     public function testSignTokenTransferBank(): void
@@ -269,8 +277,12 @@ final class NativeCantoTest extends TestCase
         $transaction = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $txBytes = Base64::decode($transaction['tx_bytes']);
         self::assertIsString($txBytes);
-        self::assertStringContainsString('/cosmos.bank.v1beta1.MsgSend', $txBytes);
-        self::assertStringContainsString($tokenDenom, $txBytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            '85cd74730811fa839bf5f6ce12ec22a550d13b17e8aff2d384bdd60feff57d6b11ec2f7db11edf5ebb606ceb52df9720a04409fe1af93e9fe255e6a82faef133',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('8204d403d96c15e80d201950b2426f429d6ee31d62ff7e0d10688404fa141c93', hash('sha256', $txBytes));
     }
 
     public static function addressProvider(): array

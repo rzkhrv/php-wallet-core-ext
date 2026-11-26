@@ -67,8 +67,11 @@ final class ZilliqaTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/313'/0'/0/1.
+        self::assertSame('ebcf0fe833bc7e91f137987b75499c2b79eb7a1a76cbd704b5166ad9ab78b147', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('zil1kh0dpag8d6se68pq0s23jc6e0qdsknzmxp45yv', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -99,6 +102,10 @@ final class ZilliqaTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

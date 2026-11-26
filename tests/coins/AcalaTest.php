@@ -67,8 +67,11 @@ final class AcalaTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/787'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/787'/0'/0'/1'.
+        self::assertSame('405c7c1ca55a80c02f20aacb47f8bba614cddc4ef8ae8b44fbf52d2756f1fd24', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('213uHcrrM4BMH6rqNRoSnm67kZwYJgLyugpLBuuNTNDT3EhL', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -100,6 +103,10 @@ final class AcalaTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

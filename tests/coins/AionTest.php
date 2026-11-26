@@ -67,8 +67,11 @@ final class AionTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/425'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/425'/0'/0'/1'.
+        self::assertSame('606bafca4a90d7a5e7e7ba3f4ad1c04f370d3801682cfd45a34e6c8673a15c93', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('0xa0bde4f51c7aa1243ee6d57261e4276ddc5d5b382acb39bb055a938bd72f41ce', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -99,6 +102,10 @@ final class AionTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

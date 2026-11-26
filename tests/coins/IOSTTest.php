@@ -68,8 +68,11 @@ final class IOSTTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/899'/1'/0/0");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010, hardened components of the legacy path reference: m/44'/899'/1'/0/0.
+        self::assertSame('5dbf8144e23f52e634497c1538b64da045d978c5f413ac81267fb291a90c92a8', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('2NFQSGJe9CjhcatLL28dPAUurXD5s93a9SnaSV1YRyD6', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -100,6 +103,10 @@ final class IOSTTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

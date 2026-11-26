@@ -69,12 +69,14 @@ final class WanchainTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/5718350'/0'/0/1.
+        self::assertSame('d8c5d9ad0e698a2bbf01de0ccd409c3a52d3127a827ab96662e7ee9dc6dc3926', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('d033a118edad5ea42ff6bc2be49a07b9b711ecc2', strtolower(substr($address, -40)));
+        self::assertSame('0xD033A118Edad5Ea42FF6BC2Be49A07B9b711ecC2', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class WanchainTest extends TestCase
     {
         $coin = CoinType::Wanchain;
         $raw = hex2bin('cebe6de804ee8ebc0332915151e49b121ccbe93c92c8d9e48694dbb66ec0d144');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

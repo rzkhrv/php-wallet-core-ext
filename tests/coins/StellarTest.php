@@ -68,8 +68,11 @@ final class StellarTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/148'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/148'/1'.
+        self::assertSame('4c5af6217853624e560329003fbb139514a68fc337469bce550ba39b0f04b088', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('GDQ2OZXWW3NOQNPW2N3A33NRKHY5LCKQ726HYRN2K4OKCF3S5XSBKILW', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -101,6 +104,10 @@ final class StellarTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

@@ -69,12 +69,14 @@ final class ThunderCoreTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/1001'/0'/0/1.
+        self::assertSame('2f7cf5a649004ce9a360dc98ad98827081947d13d2d3a30f7f01169074b1c319', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('02be69b133f68933b5d7b91eb11d2a3e0265fd4e', strtolower(substr($address, -40)));
+        self::assertSame('0x02BE69B133F68933B5d7b91eB11D2a3e0265Fd4E', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class ThunderCoreTest extends TestCase
     {
         $coin = CoinType::ThunderCore;
         $raw = hex2bin('268c1715e81df538885f070b0a55d2f2b4ecfdd062310c074d76cd7142ccb195');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

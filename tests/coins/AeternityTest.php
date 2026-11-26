@@ -67,8 +67,11 @@ final class AeternityTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/457'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/457'/0'/0'/1'.
+        self::assertSame('ec905e76dd35766e64532753d9fd54407b5184659b4ff89bfc6386d738cf4039', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('ak_2XNb5cNQ7HdUsJxPJWBYhTAGkCj34LXcGQeJhyFYNg2zKy6U7P', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -99,6 +102,10 @@ final class AeternityTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

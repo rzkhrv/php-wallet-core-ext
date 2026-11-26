@@ -69,12 +69,14 @@ final class IoTeXEVMTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/304'/0'/0/1");
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/304'/0'/0/1.
+        self::assertSame('a1321beb00a1f606e70b2ad8f971c0b2ce0179bac1f8198e4fd4456b783913ce', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('4e81d3578e64f632cb3c03ef1bae1c9f89f94384', strtolower(substr($address, -40)));
+        self::assertSame('0x4e81d3578E64F632cB3c03ef1baE1C9F89f94384', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class IoTeXEVMTest extends TestCase
     {
         $coin = CoinType::IoTeXEVM;
         $raw = hex2bin('43098b91dd7a6cf6abfec6601c239ac4c0b05e43b4bbb3f1a90c089c80170cf9');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

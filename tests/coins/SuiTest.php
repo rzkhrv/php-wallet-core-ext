@@ -67,8 +67,11 @@ final class SuiTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/784'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/784'/0'/0'/1'.
+        self::assertSame('f366c416b8dc6523e819f813b5f76e8ee8a18689404b6a797f2240d7a7684b24', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('0xf92a1a0f6b20b91ee2abf1d9289dd50ad241a59823156720abac28c4e6d8f778', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -99,6 +102,10 @@ final class SuiTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

@@ -68,8 +68,11 @@ final class HederaTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/3030'/1'/0'/0");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010, hardened components of the legacy path reference: m/44'/3030'/1'/0'/0.
+        self::assertSame('577eba92b22c4bda14b3c83397edf6f07f4963b16837d551fdd1bff209169024', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('0.0.302a300506032b657003210018ed1baf2c8e5d6e201ffd5352fc065f7b2d0b00bbb18c14d2b30160ffeecee4', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -100,6 +103,10 @@ final class HederaTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

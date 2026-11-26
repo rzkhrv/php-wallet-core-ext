@@ -69,12 +69,14 @@ final class CallistoTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/820'/0'/0/1.
+        self::assertSame('02786db0b1843580c430d403893b1f683b9cce96f3b8918f3c9723fb65f3b913', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('7b9eb0a080e20f99eaa167b852e48ef37c4f9bd8', strtolower(substr($address, -40)));
+        self::assertSame('0x7b9Eb0a080E20f99eaA167b852e48eF37C4f9BD8', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class CallistoTest extends TestCase
     {
         $coin = CoinType::Callisto;
         $raw = hex2bin('62aa6337b560dcb34167f8660beba9d4e18de42ebebccc7c61a0a493c4183784');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

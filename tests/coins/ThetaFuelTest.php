@@ -69,12 +69,14 @@ final class ThetaFuelTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/500'/0'/0/1");
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/500'/0'/0/1.
+        self::assertSame('31e6d4023da61becad4172ff52e440568c594bbd99f3c16a6fa9d94ac58aec4c', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('63e20338a77610dbb901537edf5c4c398ee099af', strtolower(substr($address, -40)));
+        self::assertSame('0x63E20338A77610dBb901537EDF5C4c398ee099AF', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class ThetaFuelTest extends TestCase
     {
         $coin = CoinType::ThetaFuel;
         $raw = hex2bin('e80b7cfb9dcef9f1c09116c66dc504049f5fe6991989c96a84efd9b266ac4a06');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

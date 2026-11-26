@@ -69,12 +69,14 @@ final class VictionTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/889'/0'/0/1.
+        self::assertSame('8793da9fcff55cb377bba8e3c5c435f3dc83e3f5e1ae68a2bd09b5398eeb63dd', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('20b973906d77359c5020f015116fdff99c7780bb', strtolower(substr($address, -40)));
+        self::assertSame('0x20b973906D77359c5020F015116fdff99c7780bB', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class VictionTest extends TestCase
     {
         $coin = CoinType::Viction;
         $raw = hex2bin('8027de9d98241e9b9c7d6eb09b2f81d53cb11fa96604512e854d09e0ff8b84d9');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

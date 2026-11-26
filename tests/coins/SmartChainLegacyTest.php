@@ -69,12 +69,14 @@ final class SmartChainLegacyTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/714'/0'/0/1.
+        self::assertSame('e1827584937ded8642986450038f3212a3568fccd2882279df8581b99be3aade', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('a92d2200195cf2c3d07c269506c9371b3401cbf1', strtolower(substr($address, -40)));
+        self::assertSame('0xa92D2200195cF2C3D07c269506c9371B3401Cbf1', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class SmartChainLegacyTest extends TestCase
     {
         $coin = CoinType::SmartChainLegacy;
         $raw = hex2bin('d7852f9373d6df2c6ed81013f6876eb0a868b82bcf978e9772511c2a1b7b5228');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

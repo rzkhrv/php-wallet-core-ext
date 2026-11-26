@@ -68,6 +68,8 @@ final class WavesTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/5741564'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/5741564'/0'/0'/1'.
+        self::assertSame('bcebed556540f56836e29e850789c6f9a07758b7b3f3ff6f37c27cc73186fe6b', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -100,6 +102,10 @@ final class WavesTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

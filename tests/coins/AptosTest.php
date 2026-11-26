@@ -69,8 +69,11 @@ final class AptosTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/637'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/637'/0'/0'/1'.
+        self::assertSame('6e5cb89ef22d8916f6a49807f0f4db182489085c7e7a3d29aa838aea679cf651', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('0xf92e7c5d877036a5c0e5aa0ea2f38650de307a5ead1e1827b97bc5f935ed35b3', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -101,6 +104,10 @@ final class AptosTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

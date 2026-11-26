@@ -68,8 +68,11 @@ final class NeblTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/146'/0'/0/1.
+        self::assertSame('b62e1e822d41ef402212e1c1e8a29bdcd95ee0835eb585bb0dd9327a74247bbb', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('NiJmrAXJEZDNi86vm9tMh3LCMxiNaog7VW', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -100,6 +103,10 @@ final class NeblTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 
@@ -188,6 +195,12 @@ final class NeblTest extends TestCase
         self::assertSame(1000000, (int) $plan->getAvailableAmount());
         self::assertGreaterThan(0, (int) $plan->getFee());
         self::assertSame(1000000, (int) $plan->getAmount() + (int) $plan->getFee() + (int) $plan->getChange());
+        self::assertGreaterThan(0, (int) $plan->getChange());
+        self::assertCount(1, $plan->getUtxos());
+        $selected = $plan->getUtxos()[0];
+        self::assertSame(1000000, (int) $selected->getAmount());
+        self::assertSame($hash, $selected->getOutPoint()->getHash());
+        self::assertSame(0, $selected->getOutPoint()->getIndex());
     }
 
     public function testSignTransaction(): void
@@ -264,13 +277,17 @@ final class NeblTest extends TestCase
         self::assertCount(1, $transaction->getInputs());
         self::assertCount(2, $transaction->getOutputs());
         self::assertSame(
-            ['value' => (int) $plan->getAmount(), 'script' => $recipientScript->data()],
+            ['value' => 100000, 'script' => $recipientScript->data()],
             ['value' => (int) $transaction->getOutputs()[0]->getValue(), 'script' => $transaction->getOutputs()[0]->getScript()],
         );
         self::assertSame(
             ['value' => (int) $plan->getChange(), 'script' => $script->data()],
             ['value' => (int) $transaction->getOutputs()[1]->getValue(), 'script' => $transaction->getOutputs()[1]->getScript()],
         );
+        $change = (int) $transaction->getOutputs()[1]->getValue();
+        self::assertGreaterThan(0, $change);
+        self::assertGreaterThan(0, 1000000 - 100000 - $change);
+        self::assertSame((int) $plan->getFee(), 1000000 - 100000 - $change);
     }
 
     public static function addressProvider(): array

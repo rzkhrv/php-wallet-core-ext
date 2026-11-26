@@ -68,8 +68,11 @@ final class AlgorandTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/283'/0'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/283'/0'/0'/1'.
+        self::assertSame('8221c6975fe998ea029b6e739996e9b591aa47c88c18dc3100cadbe51e44c6e8', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('6V3S3NWE65L2NPF7ZYRJI45K2RQRHEOLKX2XIAAV5XSVQEZTNEKWTTCHEA', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -100,6 +103,10 @@ final class AlgorandTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

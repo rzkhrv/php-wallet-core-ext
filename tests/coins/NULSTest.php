@@ -67,6 +67,8 @@ final class NULSTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/8964'/0'/0/1.
+        self::assertSame('689e9b2ce8ad2529be55fc1c228f1ebddf7e1fdbfa426ffc34231bc8afcb1242', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -99,6 +101,10 @@ final class NULSTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

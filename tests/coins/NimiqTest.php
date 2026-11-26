@@ -67,6 +67,8 @@ final class NimiqTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/242'/0'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/242'/0'/1'.
+        self::assertSame('07b81da3b56594ec1ab1941196ccbbd88a94622c74b9a2b99ed2e63d16d1e603', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -99,6 +101,10 @@ final class NimiqTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

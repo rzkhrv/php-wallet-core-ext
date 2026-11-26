@@ -68,6 +68,8 @@ final class PactusTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/21888'/3'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/21888'/3'/1'.
+        self::assertSame('dafdeff3881d9a87d144389863975b797910dc90e277ff062f664527c87593c1', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -100,6 +102,10 @@ final class PactusTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

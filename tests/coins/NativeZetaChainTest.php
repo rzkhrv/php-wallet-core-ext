@@ -70,8 +70,11 @@ final class NativeZetaChainTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/60'/0'/0/1");
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/60'/0'/0/1.
+        self::assertSame('729e54c42afc8b7aa78c4e025291f5cb3421ba50b3a26e53c97d30fbf89405c9', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('zeta1yzfr80elxm887rnvp9f5uyf6pdcqa69s3ffg7k', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -102,6 +105,10 @@ final class NativeZetaChainTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 
@@ -193,12 +200,13 @@ final class NativeZetaChainTest extends TestCase
         self::assertSame(64, strlen($output->getSignature()));
         $envelope = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $bytes = Base64::decode($envelope['tx_bytes']);
-        self::assertNotNull($bytes);
-        $send = $input->getMessages()[0]->getSendCoinsMessage();
-        self::assertStringContainsString($send->getFromAddress(), $bytes);
-        self::assertStringContainsString($send->getToAddress(), $bytes);
-        self::assertStringContainsString($send->getAmounts()[0]->getDenom(), $bytes);
-        self::assertStringContainsString($send->getAmounts()[0]->getAmount(), $bytes);
+        self::assertIsString($bytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            '97e0f6707fc38bd81fb47df2dfe1d6bf989dd7238d9eaac361350decc8fbe930633443b5b47ffbc2afac23af22d48c1b3b78c3cca348d424504950f7bf5dfb0a',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('f9db9aebbcbaf260f38ea9dec9bd18d6820d3654b430099f7cfdb8b604fa88cc', hash('sha256', $bytes));
     }
 
     public function testSignTokenTransferBank(): void
@@ -269,8 +277,12 @@ final class NativeZetaChainTest extends TestCase
         $transaction = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $txBytes = Base64::decode($transaction['tx_bytes']);
         self::assertIsString($txBytes);
-        self::assertStringContainsString('/cosmos.bank.v1beta1.MsgSend', $txBytes);
-        self::assertStringContainsString($tokenDenom, $txBytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            'ee89803f2713b2b7b2c4913cb667c2fbe6f733f05135a888074c174c841744e815953738b7686ffbaee3a507f9bd6eb9eb75b54fd80d9f9c36da57b441dc3067',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('ee93331322edf0f6f679e37568226e0e89c82b840ca36bfb3aa26706bf491ea5', hash('sha256', $txBytes));
     }
 
     public static function addressProvider(): array

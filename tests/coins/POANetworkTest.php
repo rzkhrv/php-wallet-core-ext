@@ -69,12 +69,14 @@ final class POANetworkTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/178'/0'/0/1.
+        self::assertSame('a3630e0127136a7e154e84bb8ba7afe336c29413117b9f2b7c5bf8bf356e0e27', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('835cffc9e3541dc2b6f6420d7389da351bba45cf', strtolower(substr($address, -40)));
+        self::assertSame('0x835CFFc9e3541Dc2b6f6420D7389Da351BBa45Cf', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class POANetworkTest extends TestCase
     {
         $coin = CoinType::POANetwork;
         $raw = hex2bin('1504d0e2b20557ab04aa87328833a65701a5789188a1d01d760235b3663e538a');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

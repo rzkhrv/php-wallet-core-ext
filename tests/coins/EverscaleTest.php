@@ -68,6 +68,8 @@ final class EverscaleTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/396'/1'/0/0");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010, hardened components of the legacy path reference: m/44'/396'/1'/0/0.
+        self::assertSame('e8bfa51b97dbd3d3a2e70c5dd0df26e4ad938288fff7b49e1d211518d48401e4', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -100,6 +102,10 @@ final class EverscaleTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

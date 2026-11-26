@@ -69,12 +69,14 @@ final class RootstockTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/137'/0'/0/1.
+        self::assertSame('cec69c7ac9d173e97095b86c473b3ba5cc2715bb32638337d70e5d3a66f8b4f0', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
-        self::assertSame('055903008a07bba569b20dd2b51be35e70c3338c', strtolower(substr($address, -40)));
+        self::assertSame('0x055903008a07bBa569B20dD2B51BE35E70C3338c', $address);
     }
 
     public function testAddressFromPublicKey(): void
@@ -96,6 +98,10 @@ final class RootstockTest extends TestCase
     {
         $coin = CoinType::Rootstock;
         $raw = hex2bin('82a61c78d64c30ff9d620b22e638231fa39163b6583736fd9690a7e1df19d15b');
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

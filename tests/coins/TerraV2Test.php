@@ -70,8 +70,11 @@ final class TerraV2Test extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/330'/0'/0/1");
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/330'/0'/0/1.
+        self::assertSame('226b73898a900d3e187d5da2a8c5eb3c0670bfc846b80e03a67e621e4a37e523', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('terra1gsgu4qpm0k5t7k0wz39ne0skuh0dukfsxnf73y', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -102,6 +105,10 @@ final class TerraV2Test extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 
@@ -193,12 +200,13 @@ final class TerraV2Test extends TestCase
         self::assertSame(64, strlen($output->getSignature()));
         $envelope = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $bytes = Base64::decode($envelope['tx_bytes']);
-        self::assertNotNull($bytes);
-        $send = $input->getMessages()[0]->getSendCoinsMessage();
-        self::assertStringContainsString($send->getFromAddress(), $bytes);
-        self::assertStringContainsString($send->getToAddress(), $bytes);
-        self::assertStringContainsString($send->getAmounts()[0]->getDenom(), $bytes);
-        self::assertStringContainsString($send->getAmounts()[0]->getAmount(), $bytes);
+        self::assertIsString($bytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            '8e687bfaa02244a798acfdb6fcdc4e7649d29572d8a5b7b8a34f0541ff2e2a3f13f524d9525b03d8d46fa75e9976ab8eda2e1e3d0114116bd8d87f2562f100c8',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('2be23c553df18dcb4e288e46d2d3fa6d817b43d870f0bf87b44a0a8671499845', hash('sha256', $bytes));
     }
 
     public function testSignTokenTransfer(): void
@@ -310,8 +318,12 @@ final class TerraV2Test extends TestCase
         $transaction = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $txBytes = Base64::decode($transaction['tx_bytes']);
         self::assertIsString($txBytes);
-        self::assertStringContainsString('/cosmos.bank.v1beta1.MsgSend', $txBytes);
-        self::assertStringContainsString($tokenDenom, $txBytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            '9926bbf3120cf05e94bc9c34ac64b1ad4c635537e82d3cc127fbbff06fb901cb13d39f593c3a69d176aee0433396ce809b501ceb3f4264452b61dbd811b036d8',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('1a2ecc9fefa684a65292f97da9a592d716c2b3ff108f8a57bbcb825c85638e92', hash('sha256', $txBytes));
     }
 
     public static function addressProvider(): array

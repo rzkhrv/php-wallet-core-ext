@@ -69,6 +69,8 @@ final class TONTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/607'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/607'/1'.
+        self::assertSame('b009f78b35efc2c35989e222a955a06351e10464f62915278a43e3ab14a46bcd', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -102,6 +104,10 @@ final class TONTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 

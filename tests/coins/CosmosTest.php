@@ -72,8 +72,11 @@ final class CosmosTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent BIP39/BIP32 reference: m/44'/118'/0'/0/1.
+        self::assertSame('6c9c31dbacc911664b4683c16956ca708be217d96f4b9b7a0db6fc35413fb4ae', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('cosmos1tmvlpttlwfmtatycgdyvyeuh989udrdrpuph3j', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -105,6 +108,10 @@ final class CosmosTest extends TestCase
         self::assertNotNull($key);
         $raw = $key->data();
         self::assertNotNull($raw);
+
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
 
         $imported = PrivateKey::createWithData($raw);
 
@@ -224,8 +231,12 @@ final class CosmosTest extends TestCase
         $transaction = json_decode($output->getSerialized(), true, 512, JSON_THROW_ON_ERROR);
         $txBytes = Base64::decode($transaction['tx_bytes']);
         self::assertIsString($txBytes);
-        self::assertStringContainsString('/cosmos.bank.v1beta1.MsgSend', $txBytes);
-        self::assertStringContainsString($tokenDenom, $txBytes);
+        // Independent Cosmos SDK SignDoc / TxRaw reference (deterministic secp256k1).
+        self::assertSame(
+            'd5ad4cee107f3852cefec709f817f5aa377c95599af0bab548d30d3dc815b97e120b0d3ccce3845755dbc5b08958e47a67df61f23cfba224c680a3e0abd1921f',
+            bin2hex($output->getSignature()),
+        );
+        self::assertSame('6e7fdb561b4da3e1804f17f9d6dbda91d96533012b6d8aa09e05224f05d5edbe', hash('sha256', $txBytes));
     }
 
     public function testSignIbcTransfer(): void

@@ -74,8 +74,19 @@ final class CardanoTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getDerivedKey($coin, 0, 0, 1);
         self::assertNotNull($key);
+        // Independent Icarus/CIP-1852 reference: m/1852'/1815'/0'/0/1.
+        self::assertSame(
+            '3873abadaf698857833b16ddf6afededdf2c3debd6fa3e0e7b9c3ac5df452b45' .
+            '31c0a049b4e6235c2204f77927068d4fc5c280d66cc1d144a10860d56f4fd5f7' .
+            'a299e2953a202ba89ec2bd04892f2943100172e15e2028f39befb1625a47a731' .
+            '68554b58c123fb10b046f1f5160cbb230122ce31b95d6a000745819bdd452b45' .
+            'dc0fb283569a541b852dd2b7682b3833e2d8f45551fc7cc5639a0fd63585f37b' .
+            'c2c773ef8ed6e900a4937b72b76ef97874f314f066b4813155c24fda9cee62ec',
+            bin2hex($key->data()),
+        );
 
         $address = CoinType::deriveAddress($coin, $key);
+        self::assertSame('addr1qykkwseg4esdq368cfh6zq0gu26uza5dlmeqwf8shev03vyl2040vt35dypp042awzsjk5xm3zr3zm5qh7454uwdv08sx0kelv', $address);
 
         self::assertNotNull($address);
         self::assertTrue(AnyAddress::isValid($address, $coin));
@@ -207,6 +218,9 @@ final class CardanoTest extends TestCase
         self::assertSame(10000000, (int) $plan->getAvailableAmount());
         self::assertGreaterThan(0, (int) $plan->getFee());
         self::assertSame(10000000, (int) $plan->getAmount() + (int) $plan->getFee() + (int) $plan->getChange());
+        self::assertGreaterThan(0, (int) $plan->getChange());
+        self::assertCount(1, $plan->getUtxos());
+        self::assertSame(10000000, (int) $plan->getUtxos()[0]->getAmount());
     }
 
     public function testSignTransaction(): void

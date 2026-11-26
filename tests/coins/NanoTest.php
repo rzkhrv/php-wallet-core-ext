@@ -67,6 +67,8 @@ final class NanoTest extends TestCase
         self::assertNotNull($wallet);
         $key = $wallet->getKey($coin, "m/44'/165'/1'");
         self::assertNotNull($key);
+        // Independent BIP39/SLIP-0010 reference: m/44'/165'/1'.
+        self::assertSame('70b85522e45befb274c4e991a42e62ddbb5a25600e758ee9a710bab26cb27bf3', bin2hex($key->data()));
 
         $address = CoinType::deriveAddress($coin, $key);
 
@@ -100,6 +102,10 @@ final class NanoTest extends TestCase
         $raw = $key->data();
         self::assertNotNull($raw);
 
+        self::assertIsString($raw);
+        self::assertSame(32, strlen($raw));
+        self::assertTrue(PrivateKey::isValid($raw, CoinType::curve($coin)));
+
         $imported = PrivateKey::createWithData($raw);
 
         self::assertNotNull($imported);
@@ -129,36 +135,16 @@ final class NanoTest extends TestCase
 
     public function testSignTransaction(): void
     {
+        // Wallet Core 4.8.7: tests/chains/Nano/SignerTests.cpp, NanoSigner.sign4.
+        // Offline signing vector; proof of work must be obtained before broadcasting.
         $coin = CoinType::Nano;
-        $wallet = HDWallet::createWithMnemonic(
-            'shoot island position soft burden budget tooth cruel issue economy destroy above',
-            '',
-        );
-        self::assertNotNull($wallet);
-        $sender = 'nano_39gsbcishxn3n7wd17ono4otq5wazwzusqgqigztx73wbrh5jwbdbshfnumc';
-        $key = $wallet->getKey($coin, "m/44'/165'/0'");
-        self::assertNotNull($key);
-
-        $recipientWallet = HDWallet::createWithMnemonic(
-            'legal winner thank year wave sausage worth useful legal winner thank yellow',
-            '',
-        );
-        self::assertNotNull($recipientWallet);
-        $recipient = $recipientWallet->getAddressForCoin($coin);
-        self::assertNotNull($recipient);
-        $privateKey = $key->data();
-        self::assertNotNull($privateKey);
-
-        $hash = str_repeat("\x11", 32);
-
         $input = new Proto\SigningInput([
-            'private_key' => $privateKey,
-            'parent_block' => $hash,
-            'link_recipient' => $recipient,
-            'representative' => $sender,
+            'private_key' => hex2bin('173c40e97fe2afcd24187e74f6b603cb949a5365e72fbdd065a6b165e2189e34'),
+            'parent_block' => hex2bin('1ca240212838d053ecaa9dceee598c52a6080067edecaeede3319eb0b7db6525'),
+            'link_recipient' => 'xrb_3wm37qz19zhei7nzscjcopbrbnnachs4p1gnwo5oroi3qonw6inwgoeuufdp',
+            'representative' => 'xrb_1nanode8ngaakzbck8smq6ru9bethqwyehomf79sae1k7xd47dkidjqzffeg',
             // New account balance after the send, in raw units.
-            'balance' => '1000000000000000000000000000000',
-            'work' => '0000000000000000',
+            'balance' => '126242336390000000000000000000',
         ]);
 
         $signedData = AnySigner::sign($input->serializeToString(), $coin);
@@ -168,7 +154,11 @@ final class NanoTest extends TestCase
         $output->mergeFromString($signedData);
 
         self::assertSame(SigningError::OK, $output->getError(), $output->getErrorMessage());
-        self::assertNotSame('', $output->getSignature());
+        self::assertSame('32ac7d8f5a16a498abf203b8dfee623c9e111ff25e7339f8cd69ec7492b23edd', bin2hex($output->getBlockHash()));
+        self::assertSame(
+            'bcb806e140c9e2bc71c51ebbd941b4d99cee3d97fd50e3006eabc5e325c712662e2dc163ee32660875d67815ce4721e122389d2e64f1c9ad4555a9d3d8c33802',
+            bin2hex($output->getSignature()),
+        );
     }
 
     public static function addressProvider(): array
